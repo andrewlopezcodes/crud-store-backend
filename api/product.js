@@ -13,6 +13,37 @@ function validProduct(product){
     product.quantity >= 0;
 }
 
+function validId(req, res, next){
+  if(!isNaN(req.params.id)){
+    next();
+  } else {
+    const error = new error('Invalid Id');
+    next(error);
+  }
+}
+
+function validProductMiddleware(req, res, next){
+  if(validProduct(req.body)) {
+    next();
+  } else {
+    const error = new Error('Invalid product');
+    next(error);
+  }
+}
+
+function getProductFromBody(body){
+  const {title, description, price, quantity, image} = body;
+  const product = {
+    title,
+    description,
+    price,
+    quantity,
+    image
+  };
+  return product;
+}
+
+
 router.get('/', (req, res) => {
   queries
     .getAll()
@@ -21,8 +52,7 @@ router.get('/', (req, res) => {
     });
 });
 
-router.get('/:id', (req, res, next) => {
-  if(!isNaN(req.params.id)){
+router.get('/:id', validId, (req, res, next) => {
     queries
       .getOne(req.params.id)
       .then(product => {
@@ -32,22 +62,11 @@ router.get('/:id', (req, res, next) => {
         next();
       }
     });
-  } else {
-    const error = new Error('Invalid id');
-    next(error);
-  }
-});
+  });
 
-router.post('/', (req, res, next)=>{
-  if(validProduct(req.body)){
-    const {title, description, price, quantity, image} = req.body;
-    const product = {
-      title,
-      description,
-      price,
-      quantity,
-      image
-    };
+
+router.post('/', validProductMiddleware, (req, res)=>{
+  const product = getProductFromBody(req.body);
     queries
     .create(product)
     .then(id => {
@@ -55,11 +74,19 @@ router.post('/', (req, res, next)=>{
         id
       });
     });
-  } else {
-    const error = new Error('Invalid product');
-    next(error);
-  }
-})
+  });
+
+router.put('/:id', validId, validProductMiddleware, (req, res) => {
+  const product = getProductFromBody(req.body);
+  queries
+    .update(req.params.id, product)
+    .then(() => {
+      res.json({
+        message: 'Updated!'
+      });
+    });
+});
+
 
 
 module.exports = router;
