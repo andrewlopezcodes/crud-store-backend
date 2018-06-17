@@ -4,6 +4,15 @@ const router = express.Router();
 
 const queries = require('../db/queries');
 
+function validProduct(product){
+  return typeof product.title == 'string' &&
+    product.title.trim() != '' &&
+    !isNaN(product.price) &&
+    product.price > 0 &&
+    Number.isInteger(product.quantity) &&
+    product.quantity >= 0;
+}
+
 router.get('/', (req, res) => {
   queries
     .getAll()
@@ -29,7 +38,28 @@ router.get('/:id', (req, res, next) => {
   }
 });
 
-
+router.post('/', (req, res, next)=>{
+  if(validProduct(req.body)){
+    const {title, description, price, quantity, image} = req.body;
+    const product = {
+      title,
+      description,
+      price,
+      quantity,
+      image
+    };
+    queries
+    .create(product)
+    .then(id => {
+      res.json({
+        id
+      });
+    });
+  } else {
+    const error = new Error('Invalid product');
+    next(error);
+  }
+})
 
 
 module.exports = router;
